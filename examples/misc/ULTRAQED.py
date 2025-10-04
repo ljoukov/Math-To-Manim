@@ -1023,126 +1023,146 @@ class ULTRAQEDComplete(ThreeDScene):
     def scene_10_synthesis(self):
         """Grand synthesis bringing everything together"""
 
-        self.play(
-            FadeOut(self.vacuum_title),
-            run_time=1
-        )
+        cleanup_targets = [
+            "vacuum_title",
+            "lagrangian_group",
+            "lagrangian_title",
+            "maxwell_compact",
+            "metric_eq",
+            "metric_title",
+            "alpha_group",
+            "running_graph",
+            "renorm_title",
+            "renorm_explanation",
+            "feynman_diagrams",
+        ]
+        to_fade = [getattr(self, name) for name in cleanup_targets if hasattr(self, name)]
+        if to_fade:
+            self.play(*[FadeOut(mob) for mob in to_fade], run_time=2)
+            for mob in to_fade:
+                self.remove_fixed_in_frame_mobjects(mob)
 
         # Final synthesis title
         synthesis_title = Text(
             "QED: The Complete Picture",
-            font_size=52,
+            font_size=48,
             weight=BOLD,
-            gradient=(ELECTRIC_CRIMSON, PHOTON_GOLD)
-        ).to_edge(UP, buff=0.3)
+            gradient=(ELECTRIC_CRIMSON, PHOTON_GOLD),
+        ).to_edge(UP, buff=0.4)
 
         self.add_fixed_in_frame_mobjects(synthesis_title)
 
         self.play(
             Write(synthesis_title),
             Flash(synthesis_title.get_center(), color=PHOTON_GOLD, line_length=2, num_lines=32),
-            run_time=3
+            run_time=3,
         )
 
-        # Bring back key elements in miniature
-        # Lagrangian (center)
+        # Central Lagrangian hub
         mini_lagrangian = MathTex(
             r"\mathcal{L}_{\text{QED}} = \bar{\psi}(i\gamma^\mu D_\mu - m)\psi - \frac{1}{4}F_{\mu\nu}F^{\mu\nu}",
-            font_size=36
-        ).move_to(ORIGIN)
-
+            font_size=34,
+        ).scale(0.95)
+        mini_lagrangian.shift(DOWN * 0.2)
         mini_lagrangian.set_color_by_tex_to_color_map({
             r"\psi": FERMION_ORANGE,
             r"\bar{\psi}": FERMION_ORANGE,
             r"D_\mu": GAUGE_EMERALD,
-            r"F": PHOTON_GOLD
+            r"F": PHOTON_GOLD,
         })
 
-        # Maxwell (upper left)
+        # Supporting elements positioned with generous spacing
         mini_maxwell = MathTex(
             r"\partial_\mu F^{\mu\nu} = \mu_0 J^\nu",
-            font_size=32
-        ).move_to(UL*2.5 + DOWN*0.5)
-
-        # Alpha (upper right)
+            font_size=30,
+        ).scale(0.9)
         mini_alpha = MathTex(
             r"\alpha \approx \frac{1}{137}",
-            font_size=32,
-            color=PHOTON_GOLD
-        ).move_to(UR*2.5 + DOWN*0.5)
-
-        # Feynman diagram sketch (lower left)
-        mini_feynman_parts = VGroup(
-            Line(LEFT*0.5, ORIGIN, stroke_width=3, color=BLUE),
-            Line(ORIGIN, RIGHT*0.5 + UP*0.3, stroke_width=3, color=BLUE),
-            ParametricFunction(
-                lambda t: UP*0.3*t + RIGHT*0.1*np.sin(PI*t*4),
-                t_range=[0, 1],
-                color=PHOTON_GOLD,
-                stroke_width=3
-            ).move_to(ORIGIN + UP*0.15)
-        ).scale(1.2).move_to(DL*2.5 + UP*0.5)
-
-        # Gauge symmetry (lower right)
+            font_size=30,
+            color=PHOTON_GOLD,
+        ).scale(0.9)
         mini_gauge = MathTex(
             r"U(1)",
-            font_size=40,
-            color=QUANTUM_VIOLET
-        ).move_to(DR*2.5 + UP*0.5)
+            font_size=36,
+            color=QUANTUM_VIOLET,
+        ).scale(0.9)
+
+        mini_feynman_parts = VGroup(
+            Line(LEFT * 0.5, ORIGIN, stroke_width=3, color=BLUE),
+            Line(ORIGIN, RIGHT * 0.5 + UP * 0.3, stroke_width=3, color=BLUE),
+            ParametricFunction(
+                lambda t: UP * 0.3 * t + RIGHT * 0.1 * np.sin(PI * t * 4),
+                t_range=[0, 1],
+                color=PHOTON_GOLD,
+                stroke_width=3,
+            ).move_to(ORIGIN + UP * 0.15),
+        ).scale(1.0)
+
+        left_column = VGroup(mini_maxwell, mini_feynman_parts).arrange(
+            DOWN, buff=1.5, aligned_edge=LEFT
+        )
+        left_column.move_to(LEFT * 4 + DOWN * 0.3)
+
+        right_column = VGroup(mini_alpha, mini_gauge).arrange(
+            DOWN, buff=1.5, aligned_edge=RIGHT
+        )
+        right_column.move_to(RIGHT * 4 + DOWN * 0.3)
 
         synthesis_elements = VGroup(
             mini_lagrangian,
             mini_maxwell,
             mini_alpha,
             mini_feynman_parts,
-            mini_gauge
+            mini_gauge,
         )
 
         self.add_fixed_in_frame_mobjects(synthesis_elements)
 
-        # Bring elements in
         self.play(
-            LaggedStart(*[FadeIn(elem, scale=0.5) for elem in synthesis_elements], lag_ratio=0.3),
-            run_time=5
+            LaggedStart(*[FadeIn(elem, scale=0.5) for elem in synthesis_elements], lag_ratio=0.25),
+            run_time=4,
         )
-
         self.wait(2)
 
-        # Draw connections between elements
+        # Connections with gentle curvature to avoid crowding
         connections = VGroup(
-            Arrow(mini_maxwell.get_bottom(), mini_lagrangian.get_top(), buff=0.2, stroke_width=2, color=PHOTON_GOLD),
-            Arrow(mini_alpha.get_bottom(), mini_lagrangian.get_top(), buff=0.2, stroke_width=2, color=PHOTON_GOLD),
-            Arrow(mini_lagrangian.get_bottom(), mini_feynman_parts.get_top(), buff=0.2, stroke_width=2, color=FERMION_ORANGE),
-            Arrow(mini_lagrangian.get_bottom(), mini_gauge.get_top(), buff=0.2, stroke_width=2, color=QUANTUM_VIOLET)
+            CurvedArrow(mini_maxwell.get_right(), mini_lagrangian.get_left(), angle=PI / 4, color=PHOTON_GOLD),
+            CurvedArrow(mini_alpha.get_left(), mini_lagrangian.get_right(), angle=-PI / 4, color=PHOTON_GOLD),
+            CurvedArrow(
+                mini_lagrangian.get_bottom() + LEFT * 0.2,
+                mini_feynman_parts.get_top(),
+                angle=-PI / 5,
+                color=FERMION_ORANGE,
+            ),
+            CurvedArrow(
+                mini_lagrangian.get_bottom() + RIGHT * 0.2,
+                mini_gauge.get_top(),
+                angle=PI / 5,
+                color=QUANTUM_VIOLET,
+            ),
         )
 
         self.add_fixed_in_frame_mobjects(connections)
-
         self.play(
-            LaggedStart(*[GrowArrow(arrow) for arrow in connections], lag_ratio=0.3),
-            run_time=3
+            LaggedStart(*[Create(arrow) for arrow in connections], lag_ratio=0.2),
+            run_time=3,
         )
-
         self.wait(3)
 
-        # Final summary
         summary_text = VGroup(
-            Text("Gauge Theory of Electromagnetism", font_size=32, weight=BOLD),
-            Text("Predicts anomalous magnetic moment to 10 decimal places", font_size=24),
-            Text("Most precisely tested theory in physics", font_size=24),
-            Text("Foundation for electroweak and QCD", font_size=24)
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.3).to_edge(DOWN, buff=0.5)
+            Text("Gauge Theory of Electromagnetism", font_size=30, weight=BOLD),
+            Text("Predicts anomalous magnetic moment to 10 decimal places", font_size=22),
+            Text("Most precisely tested theory in physics", font_size=22),
+            Text("Foundation for electroweak and QCD", font_size=22),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.25).to_edge(DOWN, buff=0.7)
 
         self.add_fixed_in_frame_mobjects(summary_text)
-
         self.play(
-            LaggedStart(*[FadeIn(text, shift=UP) for text in summary_text], lag_ratio=0.4),
-            run_time=5
+            LaggedStart(*[FadeIn(text, shift=UP) for text in summary_text], lag_ratio=0.35),
+            run_time=4,
         )
+        self.wait(4)
 
-        self.wait(5)
-
-        # Store for finale
         self.synthesis_title = synthesis_title
         self.synthesis_elements = synthesis_elements
         self.connections = connections
