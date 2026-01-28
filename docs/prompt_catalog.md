@@ -1084,3 +1084,409 @@ Please generate a Manim scene `WhiskeringExchangeScene` that visualizes this con
 - Use the 3D camera to show the structure clearly.
 - Render the LaTeX equations clearly in the off-white space.
 ```
+
+
+<!-- BEGIN EXTRACTIONS: REVERSE_KNOWLEDGE_TREE -->
+# Prompt Templates from Docs
+
+## docs/REVERSE_KNOWLEDGE_TREE.md (prompt code blocks)
+
+### Code block 1
+
+```python
+def analyze_concept(user_input: str) -> ConceptAnalysis:
+    """
+    Parse the user's question to identify:
+    - Core concept(s)
+    - Domain (physics, math, CS, etc.)
+    - Complexity level desired
+    - Visual possibilities
+    """
+    prompt = f"""
+    User asked: "{user_input}"
+
+    1. What is the MAIN concept they want to understand?
+    2. What scientific/mathematical domain?
+    3. What complexity level seems appropriate? (beginner/intermediate/advanced)
+    4. Is this visualizable? How?
+    5. What's the "aha!" moment we're building toward?
+    """
+
+    return {
+        'core_concept': 'cosmology',
+        'domain': 'physics/astronomy',
+        'level': 'beginner',
+        'visual_potential': 'excellent (expanding universe, timelines, 3D spacetime)',
+        'goal': 'understand how universe evolved from Big Bang to now'
+    }
+```
+
+### Code block 2
+
+```python
+def explore_prerequisites(concept: str, depth: int = 0, max_depth: int = 4) -> KnowledgeNode:
+    """
+    Recursively discover prerequisites until hitting foundation.
+    This is the KEY agent that builds the tree.
+    """
+
+    # Base case: check if this is foundational
+    if is_foundation_concept(concept) or depth >= max_depth:
+        return KnowledgeNode(
+            concept=concept,
+            prerequisites=[],
+            depth=depth,
+            is_foundation=True
+        )
+
+    # Recursive case: find prerequisites
+    prompt = f"""
+    To understand {concept}, what 3-5 prerequisite concepts must someone know first?
+
+    Rules:
+    - Only list ESSENTIAL prerequisites
+    - Order from most to least important
+    - Assume high school education as baseline
+    - Focus on concepts that enable understanding, not just context
+
+    Return as JSON list.
+    """
+
+    prereqs = llm_call(prompt)  # Returns ['special_relativity', 'curved_spacetime', ...]
+
+    # Recurse on each prerequisite
+    children = [
+        explore_prerequisites(prereq, depth + 1, max_depth)
+        for prereq in prereqs
+    ]
+
+    return KnowledgeNode(
+        concept=concept,
+        prerequisites=children,
+        depth=depth,
+        is_foundation=False
+    )
+
+def is_foundation_concept(concept: str) -> bool:
+    """Determine if concept is foundational (no further decomposition needed)"""
+
+    prompt = f"""
+    Is "{concept}" a foundational concept that a typical high school graduate
+    would understand without further explanation?
+
+    Examples of foundational: velocity, distance, time, force, waves, numbers
+    Examples of non-foundational: Lorentz transforms, gauge theory, tensors
+
+    Answer: yes/no
+    """
+
+    return llm_call(prompt).lower().startswith('yes')
+```
+
+### Code block 3
+
+```python
+def enrich_with_math(node: KnowledgeNode) -> EnrichedNode:
+    """
+    For each node in the tree, add mathematical rigor:
+    - Key equations
+    - Derivations (simplified if needed)
+    - Units and magnitudes
+    - Worked examples
+    """
+
+    prompt = f"""
+    Concept: {node.concept}
+    Level: {node.depth} (0=foundation, higher=more advanced)
+
+    Provide:
+    1. Key equation(s) in LaTeX
+    2. Variable definitions
+    3. Physical interpretation
+    4. Typical values/magnitudes
+    5. Simple worked example
+
+    Format for Manim rendering.
+    """
+
+    math_content = llm_call(prompt)
+
+    return EnrichedNode(
+        **node.__dict__,
+        equations=math_content['equations'],
+        definitions=math_content['definitions'],
+        examples=math_content['examples']
+    )
+```
+
+### Code block 4
+
+```python
+def design_visuals(enriched_node: EnrichedNode) -> VisualSpec:
+    """
+    For each concept, design the visual representation:
+    - What objects to show (graphs, shapes, animations)
+    - Color schemes
+    - Camera movements
+    - Transitions from previous concepts
+    """
+
+    prompt = f"""
+    Concept: {enriched_node.concept}
+    Equations: {enriched_node.equations}
+    Prerequisites shown: {[p.concept for p in enriched_node.prerequisites]}
+
+    Design a Manim animation segment:
+    1. What visual elements? (3D shapes, graphs, text, etc.)
+    2. Color scheme (that builds on previous segments)
+    3. Key animation moments (what changes, when)
+    4. How to connect to what came before visually
+    5. Estimated duration (3-30 seconds)
+
+    Remember: This is part of a larger animation building from simple -> complex.
+    """
+
+    return VisualSpec(
+        concept=enriched_node.concept,
+        elements=llm_call(prompt)['elements'],
+        colors=llm_call(prompt)['colors'],
+        animations=llm_call(prompt)['animations'],
+        duration=llm_call(prompt)['duration']
+    )
+```
+
+### Code block 5
+
+```python
+def compose_narrative(knowledge_tree: KnowledgeNode) -> Narrative:
+    """
+    Walk the tree from foundation -> target, creating a coherent story.
+    This generates the VERBOSE PROMPT.
+    """
+
+    # Topological sort: foundation concepts first
+    ordered_concepts = topological_sort(knowledge_tree)
+
+    narrative_parts = []
+
+    for i, concept in enumerate(ordered_concepts):
+        prompt = f"""
+        We're explaining {knowledge_tree.concept} step by step.
+
+        Current step ({i+1}/{len(ordered_concepts)}): {concept.concept}
+
+        Previous concepts covered: {[c.concept for c in ordered_concepts[:i]]}
+        This concept's prerequisites: {[p.concept for p in concept.prerequisites]}
+
+        Write a 200-word narrative segment that:
+        1. Connects to what we just learned
+        2. Introduces {concept.concept} naturally
+        3. Explains the key equation: {concept.equations[0]}
+        4. Sets up for the next concept
+        5. Specifies visual elements: {concept.visual_spec}
+
+        Write in second person, enthusiastic teaching tone.
+        Include detailed Manim instructions (colors, timing, LaTeX formatting).
+        """
+
+        segment = llm_call(prompt)
+        narrative_parts.append(segment)
+
+    # Stitch together into final verbose prompt
+    verbose_prompt = "\n\n".join([
+        "# Manim Animation: " + knowledge_tree.concept,
+        "## Scene Overview",
+        f"This animation builds {knowledge_tree.concept} from first principles.",
+        f"Total concepts: {len(ordered_concepts)}",
+        f"Progression: {' -> '.join([c.concept for c in ordered_concepts])}",
+        "",
+        "## Animation Sequence",
+        *narrative_parts
+    ])
+
+    return Narrative(
+        prompt=verbose_prompt,
+        concept_order=ordered_concepts,
+        total_duration=sum(c.visual_spec.duration for c in ordered_concepts)
+    )
+```
+
+### Code block 6
+
+```python
+def generate_manim_code(narrative: Narrative) -> str:
+    """
+    Convert the verbose prompt into actual Manim code.
+    This is your EXISTING strength - keep using it!
+    """
+
+    # Use Claude Sonnet 4.5 for superior code generation
+    # Feed the verbose prompt to Claude
+
+    code = claude_generate(
+        prompt=narrative.prompt,
+        model="claude-sonnet-4.5-20251022",
+        system="You are an expert Manim animator. Generate Python code using Manim Community Edition."
+    )
+
+    return code
+```
+
+<!-- END EXTRACTIONS: REVERSE_KNOWLEDGE_TREE -->
+<!-- BEGIN EXTRACTIONS: TOOL_SCHEMAS -->
+# Tool Schemas and Tool Definitions
+
+## KimiK2Thinking/agents/enrichment_chain.py (tool schemas)
+
+### MATHEMATICAL_CONTENT_TOOL
+
+```python
+MATHEMATICAL_CONTENT_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "write_mathematical_content",
+        "description": (
+            "Return the key mathematical information needed to present this "
+            "concept in a Manim animation."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "equations": {
+                    "type": "array",
+                    "description": "2-5 LaTeX strings wrapped for MathTex.",
+                    "items": {"type": "string"},
+                },
+                "definitions": {
+                    "type": "object",
+                    "description": "Dictionary mapping symbols to definitions.",
+                    "additionalProperties": {"type": "string"},
+                },
+                "interpretation": {
+                    "type": "string",
+                    "description": "Physical or mathematical meaning.",
+                },
+                "examples": {
+                    "type": "array",
+                    "description": "Worked examples or sample calculations.",
+                    "items": {"type": "string"},
+                },
+                "typical_values": {
+                    "type": "object",
+                    "description": "Reference magnitudes or constants.",
+                    "additionalProperties": {"type": "string"},
+                },
+            },
+            "required": ["equations", "definitions", "interpretation"],
+        },
+    },
+}
+```
+
+### VISUAL_DESIGN_TOOL
+
+```python
+VISUAL_DESIGN_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "design_visual_plan",
+        "description": (
+            "Describe the visual presentation for a concept. Focus on what should "
+            "be shown visually, not specific Manim implementation details. Manim "
+            "will handle the rendering automatically."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "visual_description": {
+                    "type": "string",
+                    "description": (
+                        "Detailed description of what should appear visually: what objects, "
+                        "shapes, or elements should be shown. Describe the visual content, "
+                        "not the Manim classes. For example: 'rotating wireframe of 4D spacetime', "
+                        "'undulating plane waves', 'Feynman diagram with electron and photon lines'."
+                    ),
+                },
+                "color_scheme": {
+                    "type": "string",
+                    "description": (
+                        "Color palette description (e.g., 'red and blue for electric and magnetic fields', "
+                        "'gold for field strength tensor'). Use descriptive color names."
+                    ),
+                },
+                "animation_description": {
+                    "type": "string",
+                    "description": (
+                        "How elements should animate or move: 'slowly rotate', 'fade in', "
+                        "'zoom into', 'morph from X to Y'. Describe the visual effect."
+                    ),
+                },
+                "transitions": {
+                    "type": "string",
+                    "description": "How to transition from previous concept to this one.",
+                },
+                "camera_movement": {
+                    "type": "string",
+                    "description": "Camera framing or movement (e.g., 'zoom into origin', 'pan over', 'pull away').",
+                },
+                "duration": {
+                    "type": "integer",
+                    "description": "Estimated duration in seconds (10-40).",
+                },
+                "layout": {
+                    "type": "string",
+                    "description": "Spatial arrangement or positioning notes.",
+                },
+            },
+            "required": ["visual_description", "animation_description", "duration"],
+        },
+    },
+}
+```
+
+### NARRATIVE_TOOL
+
+```python
+NARRATIVE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "compose_narrative",
+        "description": (
+            "Assemble the final narrative prompt describing the animation "
+            "sequence in depth."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "concept_order": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Ordered list from foundations to target concept.",
+                },
+                "verbose_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Full narrative prompt (2000+ words) with LaTeX, visuals, "
+                        "timing, transitions, and Manim directions."
+                    ),
+                },
+                "total_duration": {
+                    "type": "integer",
+                    "description": "Cumulative duration across scenes.",
+                },
+                "scene_count": {
+                    "type": "integer",
+                    "description": "Number of scenes/segments described.",
+                },
+            },
+            "required": ["concept_order", "verbose_prompt"],
+        },
+    },
+}
+```
+
+## src/agents/claude_sdk_tools.py (tool decorators)
+
+_No tool decorators found._
+
+<!-- END EXTRACTIONS: TOOL_SCHEMAS -->
